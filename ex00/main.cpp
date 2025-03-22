@@ -4,28 +4,30 @@ void validateArgs(int ac)
 {
 	if (ac != 2) 
 	{
-		std::cerr << "BitcoinExchange error : invalid amount of arguments" << std::endl;
-		exit(1);
+		throw std::invalid_argument("BitcoinExchange error : invalid amount of arguments");
 	}
 }
 
 BitcoinExchange* setupBitcoinExchange(std::string filepath)
 {
-	try
-	{
-		return (new BitcoinExchange(filepath));
-	}
-	catch(const std::exception& e)
-	{
-		std::cerr << e.what() << std::endl;
-		exit(1);
-	}
+	return (new BitcoinExchange(filepath));
 }
 
 
 int main(int ac, char** av)
 {	
-	validateArgs(ac);
-	BitcoinExchange* exchange = setupBitcoinExchange(av[1]);
+	BitcoinExchange* exchange;
+	try
+	{
+		/* code */
+		validateArgs(ac);
+		exchange = setupBitcoinExchange(av[1]);
+	}
+	catch(const std::exception& e)
+	{
+		std::cerr << e.what() << std::endl;
+		return 1;
+	}
+	
 	(void)exchange;
 }
