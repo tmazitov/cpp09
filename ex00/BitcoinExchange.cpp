@@ -4,43 +4,25 @@
 * ORTHODOX section
 */
 
-BitcoinExchange::BitcoinExchange() : _filepath(""), _file(""), _exchangeRates()
+BitcoinExchange::BitcoinExchange() : _exchangeRates()
 {
-	loadExchangeRates();
-}
-
-BitcoinExchange::BitcoinExchange(std::string filepath) : _filepath(filepath), _file(filepath.c_str()), _exchangeRates()
-{
-	if (!_file.good()) {
-		throw BitcoinExchange::ErrInvalidFilepath();
-	}
 	loadExchangeRates();
 }
 
 BitcoinExchange::~BitcoinExchange() 
 {
-	if (_file.is_open()) {
-		_file.close();
-	}
 }
 
 
-BitcoinExchange::BitcoinExchange(const BitcoinExchange &other) : _filepath(other._filepath), _file(other._filepath.c_str())
+BitcoinExchange::BitcoinExchange(const BitcoinExchange &other)
 {
-	if (!_file.good()) {
-		throw BitcoinExchange::ErrInvalidFilepath();
-	}
+	(void)other; // Mark the parameter as unused
 }
 
 BitcoinExchange &BitcoinExchange::operator=(const BitcoinExchange &other)
 {
 	if (this != &other) {
-		_filepath = other._filepath;
-		_file.close();
-		_file.open(_filepath.c_str());
-		if (!_file.good()) {
-			throw BitcoinExchange::ErrInvalidFilepath();
-		}
+		this->loadExchangeRates();
 	}
 	return *this;
 }
@@ -97,6 +79,11 @@ const char * BitcoinExchange::ErrInvalidDataFormat::what() const throw()
 }
 
 
+const char * BitcoinExchange::ErrInvalidInputFile::what() const throw()
+{
+	return "BitcoinExchange ErrInvalidInputFile error : invalid format of input file.";
+}
+
 
 /**
  * PARSING section
@@ -106,7 +93,7 @@ void BitcoinExchange::loadExchangeRates()
 {
 	std::string line;
 	std::ifstream database("data.csv");
-	if (!_file.good()) {
+	if (!database.good()) {
 		throw BitcoinExchange::ErrNoDatabase();
 	}
 
@@ -117,8 +104,18 @@ void BitcoinExchange::loadExchangeRates()
 	}
 
 	// Parsing data from database
+	std::vector<int> dateVector;
+	std::string dateString;
+	double rate;
+
 	while (std::getline(database, line)) {
-		parseLine(line);
+		std::istringstream iss(line);
+
+		if (!(std::getline(iss, dateString, ',') && (iss >> rate))) {
+			throw BitcoinExchange::ErrInvalidDataFormat(line);
+		} 
+		dateVector = parseDate(dateString);
+		_exchangeRates[dateVector] = rate;
 	}
 }
 
@@ -134,33 +131,39 @@ int BitcoinExchange::stoi(std::string line)
 	return num;
 }
 
-bool BitcoinExchange::dateIsValid(int day, int month, int year) 
+std::vector<int> BitcoinExchange::dateToVector(int day, int month, int year)
 {
-    std::tm timeinfo = {};
-    timeinfo.tm_mday = day;
-    timeinfo.tm_mon = month - 1; // month from 0
-    timeinfo.tm_year = year - 1900; // year from 1900
+	std::tm date = {};
+    date.tm_mday = day;
+    date.tm_mon = month - 1; // month from 0
+    date.tm_year = year - 1900; // year from 1900
 
 	// If tm values is invalid it will shift a date
-    std::mktime(&timeinfo);
+    std::mktime(&date);
 
-    return timeinfo.tm_mday == day
-		&& timeinfo.tm_mon == month - 1 
-		&& timeinfo.tm_year == year - 1900;
+	std::vector<int> dateVector;
+	dateVector.push_back(date.tm_mday);
+	dateVector.push_back(date.tm_mon + 1);
+	dateVector.push_back(date.tm_year + 1900);
+
+	return dateVector;
 }
 
-void BitcoinExchange::parseLine(std::string line)
+bool BitcoinExchange::dateIsValid(int day, int month, int year) 
 {
-	std::istringstream iss(line);
-	std::string date;
-	double rate;
+	std::vector<int> initDate;
+	initDate.push_back(day);
+	initDate.push_back(month);
+	initDate.push_back(year);
 
-	// Split the line into date and rate
-	if (!(std::getline(iss, date, ',') && iss >> rate)) {
-		throw BitcoinExchange::ErrInvalidDatabase();
-	} 
+	std::vector<int> updatedDate = dateToVector(day, month, year);
 
-	std::istringstream issDate(date);
+    return initDate == updatedDate;
+}
+
+std::vector<int> BitcoinExchange::parseDate(std::string dateString)
+{
+	std::istringstream issDate(dateString);
 
 	std::string yearString, 
 				dayString, 
@@ -168,24 +171,60 @@ void BitcoinExchange::parseLine(std::string line)
 
 	std::getline(issDate, yearString, '-');
 	std::getline(issDate, monthString, '-');
-	std::getline(issDate, dayString);	
+	std::getline(issDate, dayString, '-');	
 
 	if (yearString.empty() || monthString.empty() || dayString.empty()) {
-		throw BitcoinExchange::ErrInvalidDataFormat(line);
+		throw BitcoinExchange::ErrInvalidDataFormat(dateString);
 	}
-
-	int month = stoi(monthString),
-		year = stoi(yearString), 
-		day = stoi(dayString);
-
-	if (!dateIsValid(day, month, year)) {
-		throw BitcoinExchange::ErrInvalidDataFormat(line);
-	}
+	
+	// if (!dateIsValid(day, month, year)) {
+	// 	throw BitcoinExchange::ErrInvalidDataFormat(line);
+	// }
 		
-	std::cout << "Year: " << year << std::endl;
-	std::cout << "Month: " << month << std::endl;
-	std::cout << "Day: " << day << std::endl;	
+	std::vector<int> dateVector = dateToVector(
+		stoi(dayString), 
+		stoi(monthString), 
+		stoi(yearString));
+
+	// std::cout << dateVector[0] << "." << dateVector[1] << "." << dateVector[2] << std::endl;
+
+	return dateVector;
 }
 
+void BitcoinExchange::doFileRequest(std::string filePath)
+{
 
+	if (filePath.empty()) {
+		throw BitcoinExchange::ErrInvalidFilepath();
+	}
 
+	std::ifstream inputFile(filePath.c_str());
+	if (!inputFile.good()) {
+		throw BitcoinExchange::ErrInvalidFilepath();
+	}
+	std::string line;
+	std::getline(inputFile, line);
+	std::cout << line << std::endl; 
+	if (line != "date | value") {
+		throw BitcoinExchange::ErrInvalidInputFile();
+	}
+
+	std::string dateString;
+	std::vector<int> dateVector;
+	double amount;
+	while (std::getline(inputFile, line)) {
+		std::istringstream iss(line);
+		try
+		{	
+			if (!(std::getline(iss, dateString, '|') && (iss >> amount))) {
+				throw BitcoinExchange::ErrInvalidInputFile();
+			} 
+			dateVector = parseDate(dateString);
+			std::cout << dateVector[0] << "." << dateVector[1] << "." << dateVector[2] << std::endl;
+		}
+		catch(const BitcoinExchange::ErrInvalidInputFile& e)
+		{
+			std::cerr << e.what() << std::endl;
+		}
+	}
+}

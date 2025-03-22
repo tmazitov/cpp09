@@ -6,31 +6,34 @@
 #include <sstream>
 #include <map>
 #include <ctime>
+#include <iterator>
+#include <vector>
 
 class BitcoinExchange {
 	private:
-		std::string _filepath;
-		std::ifstream _file;
-		std::map<std::string, double> _exchangeRates;
+		std::map<std::vector<int>, double> _exchangeRates;
 
 		/*Parsing*/
 
 		void loadExchangeRates();
-		void parseLine(std::string line);
-		bool dateIsValid(int day, int month, int year);
+		std::vector<int> parseDate(std::istringstream iss, std::string line);
+
 		
 		/*Utils*/
 		
 		int stoi(std::string);
+		bool dateIsValid(int day, int month, int year);
+		std::vector<int> dateToVector(int day, int month, int year);
+		std::vector<int> parseDate(std::string dateString);
 		
 	public:
 		BitcoinExchange();
-		BitcoinExchange(std::string filepath);
 		~BitcoinExchange();
 		BitcoinExchange(const BitcoinExchange& other);
 		BitcoinExchange& operator=(const BitcoinExchange& other);
 
-
+		void doFileRequest(std::string filePath);
+		
 
     class ErrInvalidFilepath : public std::exception {
         public:
@@ -63,6 +66,11 @@ class BitcoinExchange {
 			~ErrInvalidDataFormat() throw();
 			virtual const char * what() const throw();
 			std::string generateMessage(std::string value) const;
+	};
+
+	class ErrInvalidInputFile : public std::exception {
+		public:
+			virtual const char * what() const throw();
 	};
 };
 

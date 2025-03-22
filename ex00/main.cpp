@@ -8,9 +8,9 @@ void validateArgs(int ac)
 	}
 }
 
-BitcoinExchange* setupBitcoinExchange(std::string filepath)
+BitcoinExchange* setupBitcoinExchange()
 {
-	return (new BitcoinExchange(filepath));
+	return (new BitcoinExchange());
 }
 
 
@@ -21,13 +21,24 @@ int main(int ac, char** av)
 	{
 		/* code */
 		validateArgs(ac);
-		exchange = setupBitcoinExchange(av[1]);
+		exchange = setupBitcoinExchange();
+		(void)av;
 	}
 	catch(const std::exception& e)
 	{
 		std::cerr << e.what() << std::endl;
 		return 1;
 	}
+
+	try
+	{
+		exchange->doFileRequest(av[1]);
+	}
+	catch(const std::exception& e)
+	{
+		std::cerr << e.what() << std::endl;
+	}
 	
-	(void)exchange;
+	delete exchange;
+	return 0;
 }
