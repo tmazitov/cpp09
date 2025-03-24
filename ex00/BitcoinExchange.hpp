@@ -11,12 +11,12 @@
 
 class BitcoinExchange {
 	private:
-		std::map<std::vector<int>, double> _exchangeRates;
+		std::map<std::string, double> _exchangeRates;
 
 		/*Parsing*/
 
 		void loadExchangeRates();
-		std::vector<int> parseDate(std::istringstream iss, std::string line);
+		std::string parseDate(std::string dateString, bool withValidation = false);
 
 		
 		/*Utils*/
@@ -24,7 +24,9 @@ class BitcoinExchange {
 		int stoi(std::string);
 		bool dateIsValid(int day, int month, int year);
 		std::vector<int> dateToVector(int day, int month, int year);
-		std::vector<int> parseDate(std::string dateString);
+		std::string vectorToString(std::vector<int> dateVector);
+		std::string intToString(int num);
+
 		
 	public:
 		BitcoinExchange();
@@ -69,6 +71,22 @@ class BitcoinExchange {
 	};
 
 	class ErrInvalidInputFile : public std::exception {
+		public:
+			virtual const char * what() const throw();
+	};
+	class ErrInvalidDateFormat : public std::exception {
+		public:
+			std::string errorValue;
+			ErrInvalidDateFormat(std::string errorValue);
+			~ErrInvalidDateFormat() throw();
+			virtual const char * what() const throw();
+			std::string generateMessage() const;
+	};
+	class ErrNegativeInputAmount : public std::exception {
+		public:
+			virtual const char * what() const throw();
+	};
+	class ErrInputAmountTooLarge : public std::exception {
 		public:
 			virtual const char * what() const throw();
 	};
