@@ -7,25 +7,30 @@
 #include <map>
 #include <ctime>
 #include <iterator>
-#include <vector>
+#include <string>
 
 class BitcoinExchange {
 	private:
-		std::map<std::string, double> _exchangeRates;
+		std::map<long, double> _exchangeRates;
+		long _latestDateTimestamp; 
+		long _earliestDateTimestamp; 
 
 		/*Parsing*/
 
 		void loadExchangeRates();
-		std::string parseDate(std::string dateString, bool withValidation = false);
+		long parseDate(std::string dateString, bool withValidation = false);
+		void parseAmount(double amount);
 
 		
 		/*Utils*/
 		
 		int stoi(std::string);
 		bool dateIsValid(int day, int month, int year);
-		std::vector<int> dateToVector(int day, int month, int year);
-		std::string vectorToString(std::vector<int> dateVector);
+		long dateToTimestamp(int day, int month, int year);
+		std::string dateToString(int day, int month, int year);
+
 		std::string intToString(int num);
+		double getRateByTimestamp(long dateTimestamp);
 
 		
 	public:

@@ -4,8 +4,10 @@
 * ORTHODOX section
 */
 
-BitcoinExchange::BitcoinExchange() : _exchangeRates()
+BitcoinExchange::BitcoinExchange() : _exchangeRates(), _latestDateTimestamp(0), _earliestDateTimestamp(0)
 {
+	_latestDateTimestamp = 0;
+	_earliestDateTimestamp = 0;
 	loadExchangeRates();
 }
 
@@ -22,6 +24,8 @@ BitcoinExchange::BitcoinExchange(const BitcoinExchange &other)
 BitcoinExchange &BitcoinExchange::operator=(const BitcoinExchange &other)
 {
 	if (this != &other) {
+		_latestDateTimestamp = 0;
+		_earliestDateTimestamp = 0;
 		this->loadExchangeRates();
 	}
 	return *this;
@@ -30,7 +34,6 @@ BitcoinExchange &BitcoinExchange::operator=(const BitcoinExchange &other)
 /**
  * ERRORS section
  */
-
 
 const char * BitcoinExchange::ErrInvalidFilepath::what() const throw()
 {
@@ -125,6 +128,7 @@ void BitcoinExchange::loadExchangeRates()
 
 	// Parsing data from database
 	std::string dateString;
+	long dateTimestamp;
 	double rate;
 
 	while (std::getline(database, line)) {
@@ -133,8 +137,16 @@ void BitcoinExchange::loadExchangeRates()
 		if (!(std::getline(iss, dateString, ',') && (iss >> rate))) {
 			throw BitcoinExchange::ErrInvalidDataFormat(line);
 		} 
-		dateString = parseDate(dateString);
-		_exchangeRates[dateString] = rate;
+		dateTimestamp = parseDate(dateString);
+
+		if (_latestDateTimestamp == 0 || dateTimestamp > _latestDateTimestamp) {
+			_latestDateTimestamp = dateTimestamp;
+		}
+		if (_earliestDateTimestamp == 0 || dateTimestamp < _earliestDateTimestamp) {
+			_earliestDateTimestamp = dateTimestamp;
+		}
+
+		_exchangeRates[dateTimestamp] = rate;
 	}
 }
 
@@ -150,22 +162,29 @@ int BitcoinExchange::stoi(std::string line)
 	return num;
 }
 
-std::vector<int> BitcoinExchange::dateToVector(int day, int month, int year)
+long BitcoinExchange::dateToTimestamp(int day, int month, int year)
 {
 	std::tm date = {};
     date.tm_mday = day;
     date.tm_mon = month - 1; // month from 0
     date.tm_year = year - 1900; // year from 1900
 
-	// If tm values is invalid it will shift a date
-    std::mktime(&date);
+	// If date values was invalid it will shift a date
+	return std::mktime(&date);
+}
+bool BitcoinExchange::dateIsValid(int day, int month, int year)
+{
+	std::tm date = {};
+    date.tm_mday = day;
+    date.tm_mon = month - 1; // month from 0
+    date.tm_year = year - 1900; // year from 1900
 
-	std::vector<int> dateVector;
-	dateVector.push_back(date.tm_year + 1900);
-	dateVector.push_back(date.tm_mon + 1);
-	dateVector.push_back(date.tm_mday);
+	// If date values was invalid it will shift a date
+	std::mktime(&date);
 
-	return dateVector;
+	return date.tm_mday == day
+		|| date.tm_year == year - 1900
+		|| date.tm_mon == month - 1;
 }
 
 std::string BitcoinExchange::intToString(int num) 
@@ -175,35 +194,28 @@ std::string BitcoinExchange::intToString(int num)
     return ss.str(); 
 }
 
-std::string BitcoinExchange::vectorToString(std::vector<int> dateVector)
+std::string BitcoinExchange::dateToString(int day, int month, int year)
 {
+	std::tm date = {};
+    date.tm_mday = day;
+    date.tm_mon = month - 1; // month from 0
+    date.tm_year = year - 1900; // year from 1900
+
+	// If date values was invalid it will shift a date
+	std::mktime(&date);
+
 	std::string result = "";
 
-	result += intToString(dateVector[0]) + "-";
-	result += dateVector[1] <= 9 ? "0" : "";
-	result += intToString(dateVector[1]) + "-";
-	result += dateVector[2] <= 9 ? "0" : "";
-	result += intToString(dateVector[2]);
+	result += intToString(date.tm_year) + "-";
+	result += date.tm_mon <= 9 ? "0" : "";
+	result += intToString(month) + "-";
+	result += date.tm_mday <= 9 ? "0" : "";
+	result += intToString(date.tm_mday);
 	
 	return result;
 }
 
-bool BitcoinExchange::dateIsValid(int day, int month, int year) 
-{
-	std::vector<int> initDate;
-	initDate.push_back(year);
-	initDate.push_back(month);
-	initDate.push_back(day);
-
-	std::vector<int> updatedDate = dateToVector(day, month, year);
-
-	// std::cout << "old" << initDate[0] << "." << initDate[1] << "." << initDate[2] << std::endl;
-	// std::cout << "new" << updatedDate[0] << "." << updatedDate[1] << "." << updatedDate[2] << std::endl;
-
-    return initDate == updatedDate;
-}
-
-std::string BitcoinExchange::parseDate(std::string dateString, bool withValidation)
+long BitcoinExchange::parseDate(std::string dateString, bool withValidation)
 {
 	std::istringstream issDate(dateString);
 
@@ -227,11 +239,41 @@ std::string BitcoinExchange::parseDate(std::string dateString, bool withValidati
 		throw BitcoinExchange::ErrInvalidDateFormat(dateString);
 	}
 		
-	std::vector<int> dateVector = dateToVector(day, month, year); 
+	return dateToTimestamp(day, month, year);
+}
 
-	
+void BitcoinExchange::parseAmount(double amount)
+{
 
-	return vectorToString(dateVector);
+	if (amount < 0) {
+		throw BitcoinExchange::ErrNegativeInputAmount();
+	}
+	if (amount > 1000) {
+		throw BitcoinExchange::ErrInputAmountTooLarge();
+	}
+}
+
+double BitcoinExchange::getRateByTimestamp(long dateTimestamp)
+{
+	const int secondsPerDay = 86400;
+
+	bool tooLate = dateTimestamp >= _latestDateTimestamp;
+	bool tooEarly = dateTimestamp <= _earliestDateTimestamp;
+	if (tooLate) 
+	{
+		return _exchangeRates[_latestDateTimestamp];
+	} 
+	else if (tooEarly) 
+	{
+		return _exchangeRates[_earliestDateTimestamp];
+	}
+
+
+	while(_exchangeRates.find(dateTimestamp) == _exchangeRates.end()) {
+		dateTimestamp -= secondsPerDay;
+	}
+
+	return _exchangeRates[dateTimestamp];
 }
 
 void BitcoinExchange::doFileRequest(std::string filePath)
@@ -254,7 +296,10 @@ void BitcoinExchange::doFileRequest(std::string filePath)
 
 
 	std::string dateString;
+	long dateTimestamp;
 	double amount;
+	double rate;
+
 	while (std::getline(inputFile, line)) {
 		std::istringstream iss(line);
 		// std::cout << "line '" << line << "'" << std::endl;
@@ -263,18 +308,15 @@ void BitcoinExchange::doFileRequest(std::string filePath)
 			if (!std::getline(iss, dateString, '|')) {
 				throw BitcoinExchange::ErrInvalidDateFormat(dateString);
 			} 
-			dateString = parseDate(dateString, true);
+			dateTimestamp = parseDate(dateString, true);
 			if (!(iss >> amount)) {
 				throw BitcoinExchange::ErrInvalidDataFormat(line);
 			}
-			if (amount < 0) {
-				throw BitcoinExchange::ErrNegativeInputAmount();
-			}
-			if (amount > 1000) {
-				throw BitcoinExchange::ErrInputAmountTooLarge();
-			}
-			std::cout << dateString << " => " << amount << std::endl;
-
+			parseAmount(amount);
+			rate = getRateByTimestamp(dateTimestamp);
+			std::cout << dateString << " => " 
+				<< amount << " = " 
+				<< amount * rate << std::endl;
 		}
 		catch(const std::exception& e)
 		{
