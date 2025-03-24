@@ -18,7 +18,11 @@ BitcoinExchange::~BitcoinExchange()
 
 BitcoinExchange::BitcoinExchange(const BitcoinExchange &other)
 {
-	(void)other; // Mark the parameter as unused
+	if (this != &other) {
+		_latestDateTimestamp = 0;
+		_earliestDateTimestamp = 0;
+		this->loadExchangeRates();
+	}
 }
 
 BitcoinExchange &BitcoinExchange::operator=(const BitcoinExchange &other)
