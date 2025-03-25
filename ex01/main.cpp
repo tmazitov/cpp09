@@ -11,7 +11,7 @@ int main(int ac, char **av)
 
 	try
 	{
-		instance.loadByString(av[1]);
+		instance.calculateByString(av[1]);
 	}
 	catch (std::exception& e)
 	{
