@@ -17,19 +17,27 @@ int main(int ac, char **av) {
     {
         std::cerr << e.what() << std::endl;
     }
+    clock_t startVector, endVector;
+    clock_t startList, endList;
     
     std::cout << "Before : ";
     PmergeMe::printVector(vector);
 
+    startVector = clock();  
     PmergeMe::sortVector(vector);
+    endVector = clock();  
+    
+    startList = clock();
     PmergeMe::sortList(list);
-
+    endList = clock();
+    
+    
     std::cout << "After : ";
     PmergeMe::printVector(vector);
-
-
-    // std::cout << "Vector sort time : " << vectorTime << std::endl;
-    // std::cout << "List sort time : " << listTime << std::endl;
+    
+    std::cout << std::fixed << std::setprecision(6);  
+    std::cout << "Vector time : " << double(endVector - startVector) / CLOCKS_PER_SEC << std::endl;
+    std::cout << "List time : " << double(endList - startList) / CLOCKS_PER_SEC << std::endl;
     
     return 0;
 }

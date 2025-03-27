@@ -8,6 +8,7 @@
 #include <list>
 #include <ctime>
 #include <sys/time.h>
+#include <iomanip>
 
 class PmergeMe
 {
@@ -21,8 +22,10 @@ class PmergeMe
 
         static void sortVector(std::vector<int> &vector);
         static void sortList(std::list<int> &list);
-
+        static int getListValue(std::list<int> &list, int index);
+        
         static void printVector(std::vector<int> &vector);
+
 
     class ErrStoiConvert : public std::exception {
         public:

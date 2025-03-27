@@ -35,20 +35,90 @@ std::list<int> PmergeMe::prepareList(int ac, char **av)
 
 void PmergeMe::sortVector(std::vector<int> &vector)
 {
-    (void)vector;
+    std::vector<int> sorted;
+    std::vector<int> pending;
+
+    for (long unsigned int i = 0; i < vector.size(); i++)
+    {
+        if (i % 2 == 1)
+        {
+            sorted.push_back(std::max(vector[i], vector[i - 1]));
+            pending.push_back(std::min(vector[i], vector[i - 1]));
+        }
+    }
+    if (vector.size() % 2 == 1)
+    {
+        sorted.push_back(vector[vector.size() - 1]);
+    }
+
+    if (sorted.size() > 1)
+    {
+        sortVector(sorted);
+    }
+
+    for (long unsigned int i = 0; i < pending.size(); i++)
+    {
+        std::vector<int>::iterator it = std::lower_bound(sorted.begin(), sorted.end(), pending[i]);
+        sorted.insert(it, pending[i]);
+    }
+
+    vector = sorted;
 }   
 
 void PmergeMe::sortList(std::list<int> &list)
 {
-    (void)list;
+    std::list<int> sorted;
+    std::list<int> pending;
+
+    for (long unsigned int i = 0; i < list.size(); i++)
+    {
+        if (i % 2 == 1)
+        {
+            int a = getListValue(list, i);
+            int b = getListValue(list, i - 1);
+            sorted.push_back(std::max(a, b));
+            pending.push_back(std::min(a, b));
+        }
+    }
+    if (list.size() % 2 == 1)
+    {
+        sorted.push_back(getListValue(list, list.size() - 1));
+    }
+
+    if (sorted.size() > 1)
+    {
+        sortList(sorted);
+    }
+
+    for (long unsigned int i = 0; i < pending.size(); i++)
+    {
+        int a =  getListValue(list, i);;
+        std::list<int>::iterator it = std::lower_bound(sorted.begin(), sorted.end(), a);
+        sorted.insert(it, a);
+    }
+
+    list = sorted;
+}
+
+int PmergeMe::getListValue(std::list<int> &list, int index)
+{
+    std::list<int>::iterator it = list.begin();
+    std::advance(it, index); 
+    return *it;
 }
 
 void PmergeMe::printVector(std::vector<int> &vector)
 {
-    for (std::vector<int>::iterator it = vector.begin(); it != vector.end(); it++)
+    for (long unsigned int i = 0; i < (unsigned long int)(std::min(int(vector.size()), 100)); i++)
     {
-        std::cout << *it << " ";
+        std::cout << vector[i] << " ";
     }
+
+    if (vector.size() > 100)
+    {
+        std::cout << "...";
+    }
+
     std::cout << std::endl;
 }
 
