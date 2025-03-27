@@ -6,12 +6,14 @@ int main(int ac, char **av) {
         return 0;
     }
 
+    PmergeMe merger;
+
     std::vector<int> vector;
     std::list<int> list;
     try
     {
-        vector = PmergeMe::prepareVector(ac, av);
-        list = PmergeMe::prepareList(ac, av);
+        vector = merger.prepareVector(ac, av);
+        list = merger.prepareList(ac, av);
     }
     catch(const std::exception& e)
     {
@@ -22,19 +24,19 @@ int main(int ac, char **av) {
     clock_t startList, endList;
     
     std::cout << "Before : ";
-    PmergeMe::printVector(vector);
+    merger.printVector(vector);
 
     startVector = clock();  
-    PmergeMe::sortVector(vector);
+    merger.sortVector(vector);
     endVector = clock();  
     
     startList = clock();
-    PmergeMe::sortList(list);
+    merger.sortList(list);
     endList = clock();
     
     
     std::cout << "After : ";
-    PmergeMe::printVector(vector);
+    merger.printVector(vector);
     
     std::cout << std::fixed << std::setprecision(6);  
     std::cout << "Vector time for " 
