@@ -17,7 +17,11 @@ std::vector<int> PmergeMe::prepareVector(int ac, char **av)
     std::vector<int> result;
     for (int i = 1; i < ac; i++)
     {
-        result.push_back(PmergeMe::stoi(av[i]));
+        int num = PmergeMe::stoi(av[i]);
+        if (num < 0) {
+            throw PmergeMe::ErrStoiConvert(av[i]);
+        }
+        result.push_back(num);
     }
     return result;
 }
@@ -27,7 +31,11 @@ std::list<int> PmergeMe::prepareList(int ac, char **av)
     std::list<int> result;
     for (int i = 1; i < ac; i++)
     {
-        result.push_back(PmergeMe::stoi(av[i]));
+        int num = PmergeMe::stoi(av[i]);
+        if (num < 0) {
+            throw PmergeMe::ErrStoiConvert(av[i]);
+        }
+        result.push_back(num);
     }
     return result;
 }

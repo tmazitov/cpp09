@@ -16,6 +16,7 @@ int main(int ac, char **av) {
     catch(const std::exception& e)
     {
         std::cerr << e.what() << std::endl;
+        return (1);
     }
     clock_t startVector, endVector;
     clock_t startList, endList;
@@ -36,8 +37,12 @@ int main(int ac, char **av) {
     PmergeMe::printVector(vector);
     
     std::cout << std::fixed << std::setprecision(6);  
-    std::cout << "Vector time : " << double(endVector - startVector) / CLOCKS_PER_SEC << std::endl;
-    std::cout << "List time : " << double(endList - startList) / CLOCKS_PER_SEC << std::endl;
+    std::cout << "Vector time for " 
+            << vector.size() <<  " elements : " 
+            << double(endVector - startVector) / CLOCKS_PER_SEC << std::endl;
+    std::cout << "List time for "
+            << vector.size() << " elements : " 
+            << double(endList - startList) / CLOCKS_PER_SEC << std::endl;
     
     return 0;
 }
