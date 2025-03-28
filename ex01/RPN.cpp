@@ -7,9 +7,7 @@ const std::pair<char, RPN::Operation> RPN::operations[4] = {
     std::make_pair('/', &RPN::divide)
 };
 
-RPN::RPN() :  _digitKeys(){
-
-}
+RPN::RPN() :  _digitKeys(){}
 
 RPN::~RPN() {}
 
@@ -106,9 +104,6 @@ void RPN::calculateByString(std::string inputStr)
 
 			tempValue1 = _digitKeys.top();
 			_digitKeys.pop();
-
-			// std::cout << tempValue2 << " " << key << " " << tempValue1 << std::endl;
-
 
 			_digitKeys.push(makeOperation(key, tempValue1, tempValue2));
 

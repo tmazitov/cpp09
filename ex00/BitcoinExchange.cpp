@@ -11,10 +11,7 @@ BitcoinExchange::BitcoinExchange() : _exchangeRates(), _latestDateTimestamp(0), 
 	loadExchangeRates();
 }
 
-BitcoinExchange::~BitcoinExchange() 
-{
-}
-
+BitcoinExchange::~BitcoinExchange() {}
 
 BitcoinExchange::BitcoinExchange(const BitcoinExchange &other)
 {
@@ -127,6 +124,7 @@ void BitcoinExchange::loadExchangeRates()
 	// Check database header
 	std::getline(database, line);
 	if (line != "date,exchange_rate") {
+		database.close();
 		throw BitcoinExchange::ErrInvalidDatabase();
 	}
 
@@ -139,6 +137,7 @@ void BitcoinExchange::loadExchangeRates()
 		std::istringstream iss(line);
 
 		if (!(std::getline(iss, dateString, ',') && (iss >> rate))) {
+			database.close();
 			throw BitcoinExchange::ErrInvalidDataFormat(line);
 		} 
 		dateTimestamp = parseDate(dateString);
@@ -152,6 +151,7 @@ void BitcoinExchange::loadExchangeRates()
 
 		_exchangeRates[dateTimestamp] = rate;
 	}
+	database.close();
 }
 
 int BitcoinExchange::stoi(std::string line) 
@@ -295,6 +295,7 @@ void BitcoinExchange::doFileRequest(std::string filePath)
 	std::getline(inputFile, line);
 	std::cout << line << std::endl; 
 	if (line != "date | value") {
+		inputFile.close();
 		throw BitcoinExchange::ErrInvalidInputFile();
 	}
 
@@ -306,7 +307,6 @@ void BitcoinExchange::doFileRequest(std::string filePath)
 
 	while (std::getline(inputFile, line)) {
 		std::istringstream iss(line);
-		// std::cout << "line '" << line << "'" << std::endl;
 		try
 		{	
 			if (!std::getline(iss, dateString, '|')) {
@@ -327,4 +327,5 @@ void BitcoinExchange::doFileRequest(std::string filePath)
 			std::cerr << e.what() << std::endl;
 		}
 	}
+	inputFile.close();
 }

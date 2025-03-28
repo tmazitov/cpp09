@@ -19,10 +19,8 @@ int main(int ac, char** av)
 	BitcoinExchange* exchange;
 	try
 	{
-		/* code */
 		validateArgs(ac);
 		exchange = setupBitcoinExchange();
-		(void)av;
 	}
 	catch(const std::exception& e)
 	{
